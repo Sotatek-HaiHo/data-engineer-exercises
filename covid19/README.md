@@ -40,3 +40,18 @@ or the #1 derived dataset and explain why.
     * old_screen_name: the previous screen name of the user
     * new_screen_name: the new screen name of the user
     * change_date: the date the user changed their screen name
+
+## Instruction setup 
+
+### Create project dbt
+
+1. Run command ```dbt init covid19``` to create dbt project covid19 
+2. Config profiles.yml to connect with Postgresql database
+
+### Import data from dataset
+
+1. Download dataset from <https://www.kaggle.com/datasets/smid80/coronavirus-covid19-tweets-early-april>
+2. Extract dataset to an empty folder
+3. Create raw table in the database with all columns of the dataset
+4. Config params of upload_data.py (Connection to database, csv folder path, table name)
+5. Run file upload_data.py to upload data to database
