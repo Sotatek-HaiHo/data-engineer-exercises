@@ -7,19 +7,19 @@ covid19:
       threads: 2
       host: localhost
       port: 5432
-      user: postgres
-      pass: password
-      dbname: postgres
-      schema: public
+      user: "{{ env_var('DBT_USER') }}"
+      pass: "{{ env_var('DBT_PASSWORD') }}"
+      dbname: "{{ env_var('DBT_DATABASE') }}"
+      schema: "{{ env_var('DBT_SCHEMA') }}"
 
     prod:
       type: postgres
       threads: 2
       host: localhost
       port: 5432
-      user: postgres
-      pass: password
-      dbname: postgres
-      schema: public
+      user: "{{ env_var('DBT_USER') }}"
+      pass: "{{ env_var('DBT_PASSWORD') }}"
+      dbname: "{{ env_var('DBT_DATABASE') }}"
+      schema: "{{ env_var('DBT_SCHEMA') }}"
 
   target: dev
