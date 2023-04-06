@@ -11,7 +11,7 @@ with ts as (SELECT user_id,
                    tweet_date,
                    source,
                    COUNT(*) AS cnt
-            FROM public.raw_tweets
+            FROM {{ source('raw_tweets', 'raw_tweets') }}
             GROUP BY source, user_id, tweet_date)
 
 select ts.user_id,
