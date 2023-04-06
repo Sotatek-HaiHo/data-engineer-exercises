@@ -2,14 +2,9 @@ import os
 from datetime import datetime
 import pandas as pd
 from sqlalchemy import create_engine
+from dotenv import load_dotenv
 
-def upload_data():
-    # Create connection with database postgresql
-    engine = create_engine('postgresql://postgres:password@localhost:5432/postgres')
-
-    # CSV folder path
-    csv_folder = '/home/haiho/data'
-
+def upload_data(engine, csv_folder):
     # Table name and schema name in the database
     table_name = 'raw_tweets'
     schema_name = 'public'
@@ -24,6 +19,13 @@ def upload_data():
             df['tweet_date'] = date
             df.to_sql(name=table_name, schema=schema_name, con=engine, if_exists='append', index=False)
 
-    # Close connection with database
-    engine.dispose()
-upload_data()
+if __name__ == "__main__":
+    load_dotenv()
+    csv_folder = os.getenv('CSV_FOLDER')
+    postgre_connection_string = os.getenv('POSTGRE_CONNECTION_STRING')
+    # Create connection with database postgresql
+    engine = create_engine(postgre_connection_string)
+    try:
+        upload_data(engine, csv_folder)
+    finally:
+        engine.dispose()
