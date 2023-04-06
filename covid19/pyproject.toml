@@ -1,0 +1,45 @@
+[tool.pdm]
+
+[project]
+name = "covid19"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Hai Ho", email = "hai.ho@sotatek.com"},
+]
+dependencies = [
+    "pandas>=2.0.0",
+    "sqlalchemy>=2.0.9",
+    "dotenv>=0.0.5",
+    "python-dotenv>=1.0.0",
+]
+requires-python = ">=3.10"
+readme = "README.md"
+license = {text = "SOTATEK"}
+[project.optional-dependencies]
+dev = [
+    "pre-commit>=3.2.1",
+    "ufmt>=2.1.0",
+    "commitizen>=2.42.1",
+]
+test = [
+    "pytest>=7.2.2",
+]
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[tool.pytest.ini_options]
+minversion = "7.2"
+addopts = "-ra -q"
+# Allow running pytests without running `pdm install`, though it's recommended to do so
+pythonpath = [
+  "src"
+]
+testpaths = [
+    "tests"
+]
+python_functions = "should__*"
+python_files = "*_test.py"
+
