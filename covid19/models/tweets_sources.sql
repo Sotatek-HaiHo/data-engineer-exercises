@@ -3,7 +3,11 @@
 
 {{
   config(
-    materialized='table'
+    materialized='table',
+    indexes=[
+      {'columns': ['user_id'], 'type': 'hash'},
+      {'columns': ['user_id', 'tweet_date'], 'unique': True}
+    ]
   )
 }}
 
