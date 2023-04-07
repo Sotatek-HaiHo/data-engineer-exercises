@@ -1,0 +1,8 @@
+/.dbt/.user.yml
+/covid19/.pdm.toml
+/covid19/target/
+/covid19/dbt_packages/
+/covid19/logs/
+/covid19/.env
+/covid19/build/
+/covid19/dist/
