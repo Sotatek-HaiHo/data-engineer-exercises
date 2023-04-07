@@ -12,6 +12,8 @@ dependencies = [
     "sqlalchemy>=2.0.9",
     "dotenv>=0.0.5",
     "python-dotenv>=1.0.0",
+    "dagster>=1.1.13",
+    "dagit>=1.1.13",
 ]
 requires-python = ">=3.10"
 readme = "README.md"

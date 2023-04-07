@@ -8,6 +8,8 @@ Requires-Dist: pandas>=2.0.0
 Requires-Dist: sqlalchemy>=2.0.9
 Requires-Dist: dotenv>=0.0.5
 Requires-Dist: python-dotenv>=1.0.0
+Requires-Dist: dagster>=1.1.13
+Requires-Dist: dagit>=1.1.13
 Requires-Dist: pre-commit>=3.2.1; extra == "dev"
 Requires-Dist: ufmt>=2.1.0; extra == "dev"
 Requires-Dist: commitizen>=2.42.1; extra == "dev"
