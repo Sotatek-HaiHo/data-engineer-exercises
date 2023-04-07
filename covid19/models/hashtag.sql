@@ -14,6 +14,6 @@ with hst as (SELECT distinct user_id, tweet_date, unnest(regexp_matches(lower(co
 
 select user_id,
        tweet_date,
-       array_agg(hashtag) AS hastags
+       array_agg(hashtag) AS hashtags
 from hst2
 group by user_id, tweet_date
