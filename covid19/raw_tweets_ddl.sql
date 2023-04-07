@@ -4,7 +4,7 @@ create table if not exists raw_tweets
     user_id              bigint,
     created_at           timestamp,
     screen_name          text,
-    text                 text,
+    content                 text,
     source               text,
     reply_to_status_id   bigint,
     reply_to_user_id     bigint,

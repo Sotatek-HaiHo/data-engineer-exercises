@@ -7,16 +7,11 @@
   )
 }}
 
-with ts as (SELECT user_id,
-                   tweet_date,
-                   source,
-                   COUNT(*) AS cnt
-            FROM {{ source('raw_tweets', 'raw_tweets') }}
-            GROUP BY source, user_id, tweet_date)
-
-select ts.user_id,
-       ts.tweet_date,
-       JSONB_OBJECT_AGG(ts.source, ts.cnt) AS tweet_sources
-from ts
-where ts.source is not null
-group by user_id, tweet_date
+with src as (SELECT distinct user_id, tweet_date, coalesce(source, 'No Information') as source, COUNT(*) AS cnt
+             FROM {{ source('raw_tweets', 'raw_tweets') }}
+             GROUP BY source, user_id, tweet_date),
+     sources as (SELECT distinct user_id, tweet_date, JSONB_OBJECT_AGG(src.source, cnt) AS tweet_sources
+                 FROM src
+                 group by user_id, tweet_date)
+SELECT distinct user_id, tweet_date, tweet_sources
+FROM sources
