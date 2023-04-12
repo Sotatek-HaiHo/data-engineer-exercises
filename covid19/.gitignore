@@ -2,3 +2,4 @@
 target/
 dbt_packages/
 logs/
+/build/covid19-0.1.0+editable.dist-info/METADATA
