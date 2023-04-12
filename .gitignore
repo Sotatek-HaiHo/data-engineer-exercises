@@ -7,3 +7,4 @@
 /covid19/.env
 /covid19/build/
 /covid19/dist/
+.pdm.toml
