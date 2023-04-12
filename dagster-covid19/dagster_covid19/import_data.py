@@ -21,7 +21,9 @@ def download_and_extract_dataset_to_database():
         try:
             upload_data(engine, tmpdir)
         finally:
+            os.rmdir(tmpdir)
             engine.dispose()
+
 
 
 def upload_data(engine, csv_folder):
