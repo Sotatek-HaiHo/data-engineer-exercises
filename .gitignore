@@ -11,3 +11,6 @@
 
 # PDM build directory
 build/
+
+# Environment file
+.env
