@@ -8,3 +8,7 @@
 /covid19/build/
 /covid19/dist/
 .pdm-python
+
+# PDM build directory
+build/
+
