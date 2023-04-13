@@ -25,7 +25,6 @@ def download_and_extract_dataset_to_database():
             engine.dispose()
 
 
-
 def upload_data(engine, csv_folder):
     # Table name and schema name in the database
     table_name = 'raw_tweets'
@@ -44,6 +43,7 @@ def upload_data(engine, csv_folder):
             df['tweet_date'] = date
             df.rename({'text': 'content'}, axis=1, inplace=True)
             df.to_sql(name=table_name, schema=schema_name, con=engine, if_exists='append', index=False)
+
 
 @asset(retry_policy=RetryPolicy(max_retries=3, delay=60), key_prefix=["raw_tweets"])
 def raw_tweets():
