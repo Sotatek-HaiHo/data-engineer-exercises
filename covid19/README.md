@@ -41,11 +41,11 @@ or the #1 derived dataset and explain why.
     * new_screen_name: the new screen name of the user
     * change_date: the date the user changed their screen name
 
-## Instruction setup 
+## Instruction setup
 
 ### Create project dbt
 
-1. Run command ```dbt init covid19``` to create dbt project covid19 
+1. Run command ```dbt init covid19``` to create dbt project covid19
 2. Config profiles.yml to connect with Postgresql database
 
 ### Import data from dataset

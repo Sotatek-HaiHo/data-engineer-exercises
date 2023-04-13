@@ -17,4 +17,3 @@ FROM {{ source('raw_tweets', 'raw_tweets') }} t1
      {{ source('raw_tweets', 'raw_tweets') }} t2
 ON t1.reply_to_status_id = t2.status_id
 WHERE t1.is_quote = TRUE
-
