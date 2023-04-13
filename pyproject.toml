@@ -1,5 +1,3 @@
-[tool.pdm]
-
 [project]
 name = "covid19"
 version = "0.1.0"
@@ -8,17 +6,15 @@ authors = [
     {name = "Hai Ho", email = "hai.ho@sotatek.com"},
 ]
 dependencies = [
-    "pandas>=2.0.0",
-    "sqlalchemy>=2.0.9",
-    "dotenv>=0.0.5",
-    "python-dotenv>=1.0.0",
-    "dagster>=1.1.13",
-    "dagit>=1.1.13",
-    "dbt-core>=1.4.5",
+    "pandas~=2.0",
+    "dagster~=1.2",
+    "dagit~=1.2",
+    "dagster-dbt~=0.18",
+    "python-dotenv~=1.0",
+    "kaggle~=1.5",
     "dbt-postgres>=1.4.5",
-    "psycopg2-binary>=2.9.6",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.12"
 readme = "README.md"
 license = {text = "SOTATEK"}
 [project.optional-dependencies]
@@ -48,3 +44,7 @@ testpaths = [
 python_functions = "should__*"
 python_files = "*_test.py"
 
+[tool.pdm]
+
+[tool.dagster]
+module_name = "dagster_covid19.asset"

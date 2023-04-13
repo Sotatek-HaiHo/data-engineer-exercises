@@ -1,3 +1,4 @@
+/coronavirus-covid19-tweets-early-april/coronavirus-covid19-tweets-early-april.zip
 /.dbt/.user.yml
 /covid19/.pdm.toml
 /covid19/target/
@@ -6,3 +7,10 @@
 /covid19/.env
 /covid19/build/
 /covid19/dist/
+.pdm-python
+
+# PDM build directory
+build/
+
+# Environment file
+.env
