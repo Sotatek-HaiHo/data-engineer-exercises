@@ -10,8 +10,9 @@ dependencies = [
     "dagster~=1.2",
     "dagit~=1.2",
     "dagster-dbt~=0.18",
-    "python-dotenv>=1.0.0",
-    "kaggle>=1.5.13",
+    "python-dotenv~=1.0",
+    "kaggle~=1.5",
+    "dbt-postgres>=1.4.5",
 ]
 requires-python = ">=3.10,<3.12"
 readme = "README.md"
@@ -46,4 +47,4 @@ python_files = "*_test.py"
 [tool.pdm]
 
 [tool.dagster]
-module_name = "dagster_covid19"
+module_name = "dagster_covid19.asset"

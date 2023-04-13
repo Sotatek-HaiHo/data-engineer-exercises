@@ -280,6 +280,16 @@ requires_python = ">=3.6.1"
 summary = "A tool to analyze and extract information from Jinja used in dbt projects."
 
 [[package]]
+name = "dbt-postgres"
+version = "1.4.5"
+requires_python = ">=3.7"
+summary = "The postgres adapter plugin for dbt (data build tool)"
+dependencies = [
+    "dbt-core==1.4.5",
+    "psycopg2-binary~=2.8",
+]
+
+[[package]]
 name = "decli"
 version = "0.5.2"
 requires_python = ">=3.6"
@@ -498,20 +508,6 @@ dependencies = [
     "pyrsistent>=0.14.0",
     "setuptools",
     "six>=1.11.0",
-]
-
-[[package]]
-name = "kaggle"
-version = "1.5.13"
-summary = "Kaggle API"
-dependencies = [
-    "certifi",
-    "python-dateutil",
-    "python-slugify",
-    "requests",
-    "six>=1.10",
-    "tqdm",
-    "urllib3",
 ]
 
 [[package]]
@@ -1153,7 +1149,7 @@ dependencies = [
 [metadata]
 lock_version = "4.2"
 groups = ["default", "dev", "test"]
-content_hash = "sha256:551046f04895dca843deaa326958586086cfec0c3c009693fc7b6a9c4db7d08c"
+content_hash = "sha256:d1bba1a69b2d09118161d9772a242aafed2ec870096da51b610007dbde6f6e8c"
 
 [metadata.files]
 "agate 1.7.0" = [
@@ -1608,9 +1604,6 @@ content_hash = "sha256:551046f04895dca843deaa326958586086cfec0c3c009693fc7b6a9c4
 "jsonschema 3.2.0" = [
     {url = "https://files.pythonhosted.org/packages/69/11/a69e2a3c01b324a77d3a7c0570faa372e8448b666300c4117a516f8b1212/jsonschema-3.2.0.tar.gz", hash = "sha256:c8a85b28d377cc7737e46e2d9f2b4f44ee3c0e1deac6bf46ddefc7187d30797a"},
     {url = "https://files.pythonhosted.org/packages/c5/8f/51e89ce52a085483359217bc72cdbf6e75ee595d5b1d4b5ade40c7e018b8/jsonschema-3.2.0-py2.py3-none-any.whl", hash = "sha256:4e5b3cf8216f577bee9ce139cbe72eca3ea4f292ec60928ff24758ce626cd163"},
-]
-"kaggle 1.5.13" = [
-    {url = "https://files.pythonhosted.org/packages/45/7f/688c68e9308c4c0975490dd2c506f79a68e06fd061f392adfbf7d4b9c31d/kaggle-1.5.13.tar.gz", hash = "sha256:8364c56c36125cb8195876d911d0bc9efbc173167e963b9e9ef793789ba9a7fe"},
 ]
 "leather 0.3.4" = [
     {url = "https://files.pythonhosted.org/packages/73/c5/5bc5a19a62147ee8ff2de7b416ee6534b5bd79f22c790d0365ebef223f34/leather-0.3.4.tar.gz", hash = "sha256:b43e21c8fa46b2679de8449f4d953c06418666dc058ce41055ee8a8d3bb40918"},
