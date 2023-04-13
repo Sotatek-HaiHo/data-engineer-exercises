@@ -6,19 +6,20 @@ import pandas as pd
 from dagster import asset, RetryPolicy
 from dotenv.main import load_dotenv
 from kaggle.api.kaggle_api_extended import KaggleApi
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 
 
 def download_and_extract_dataset_to_database():
     load_dotenv()
     postgres_connection_string = os.getenv("POSTGRE_CONNECTION_STRING")
+    temporary_directory = os.getenv("DAGSTER_ASSET_TMPDIR")
     if postgres_connection_string is None:
         raise Exception("POSTGRE_CONNECTION_STRING is not set")
     else:
         engine = create_engine(postgres_connection_string)
         kg = KaggleApi()
         kg.authenticate()
-        with TemporaryDirectory() as tmpdir:
+        with TemporaryDirectory(dir=temporary_directory) as tmpdir:
             kg.dataset_download_files(
                 dataset="smid80/coronavirus-covid19-tweets-early-april",
                 path=tmpdir,
