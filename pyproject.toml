@@ -45,4 +45,3 @@ testpaths = [
 ]
 python_functions = "should__*"
 python_files = "*_test.py"
-
