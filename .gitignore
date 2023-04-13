@@ -14,6 +14,3 @@ build/
 
 # Environment file
 .env
-
-# Dagster temp directories
-tmp*/
