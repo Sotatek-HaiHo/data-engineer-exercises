@@ -22,38 +22,46 @@ class MyIOManager(IOManager):
             i += 1
 
     def load_input(self, context):
-        tmpdir = os.getenv("DAGSTER_ASSET_TMPDIR")
-        i = 1
-        df_list = list()
-        for element in os.listdir(tmpdir):
-            input_path = tmpdir + "/" + str(i) + context.metadata.get("name")
-            df = pd.read_parquet(input_path)
-            df_list.append(df)
-            i += 1
-        return df_list
+        filename = context.metadata.get("name")
+
+        def parquet_df_gen(filename):
+            tmpdir = os.getenv("DAGSTER_ASSET_TMPDIR")
+            par_df = pd.DataFrame()
+            i = 1
+            for element in os.listdir(tmpdir):
+                input_path = tmpdir + "/" + str(i) + filename
+                par_df = pd.read_parquet(input_path)
+                i += 1
+            yield par_df
+
+        parquet_generator = parquet_df_gen(filename)
+        return parquet_generator
 
 
 def download_and_extract_dataset():
     temporary_directory = os.getenv("DAGSTER_ASSET_TMPDIR")
     kg = KaggleApi()
     kg.authenticate()
-    df_list = list()
-    with TemporaryDirectory(dir=temporary_directory) as tmpdir:
-        kg.dataset_download_files(
-            dataset="smid80/coronavirus-covid19-tweets-early-april",
-            path=tmpdir,
-            unzip=True,
-        )
-    for filename in os.listdir(tmpdir):
-        print(filename.split(".")[0])
-        if filename.endswith(".CSV"):
-            date_str = filename.split(" ")[0]
-            date = datetime.strptime(date_str, "%Y-%m-%d").date()
-            df = pd.read_csv(os.path.join(tmpdir, filename))
-            df["tweet_date"] = date
-            df.rename({"text": "content"}, axis=1, inplace=True)
-            df_list.append(df)
-    return Output(df_list, metadata={"name": "covid.parquet"})
+
+    def df_gen():
+        with TemporaryDirectory(dir=temporary_directory) as tmpdir:
+            kg.dataset_download_files(
+                dataset="smid80/coronavirus-covid19-tweets-early-april",
+                path=tmpdir,
+                unzip=True,
+            )
+            for filename in os.listdir(tmpdir):
+                print(filename.split(".")[0])
+                if filename.endswith(".CSV"):
+                    date_str = filename.split(" ")[0]
+                    date = datetime.strptime(date_str, "%Y-%m-%d").date()
+                    df = pd.read_csv(os.path.join(tmpdir, filename))
+                    df["tweet_date"] = date
+                    df.rename({"text": "content"}, axis=1, inplace=True)
+                    yield df
+
+    df_generator = df_gen()
+    return Output(df_generator, metadata={"name": "covid.parquet"})
 
 
 @io_manager
@@ -92,7 +100,7 @@ def upload_data(engine, df):
         )
     },
 )
-def raw_tweets(parquet_files: list):
+def raw_tweets(parquet_files):
     postgres_connection_string = os.getenv("POSTGRE_CONNECTION_STRING")
     if postgres_connection_string is None:
         raise Exception("POSTGRE_CONNECTION_STRING is not set")
