@@ -1,5 +1,6 @@
-from dagster import define_asset_job, Definitions, file_relative_path
-from dagster_dbt import dbt_cli_resource, load_assets_from_dbt_project
+from dagster import Definitions
+from dagster_dbt import dbt_cli_resource
+
 from src.dagster_covid19.asset.import_data import parquet_files, raw_tweets
 from src.dagster_covid19.asset.sensor import (
     dbt_assets,
