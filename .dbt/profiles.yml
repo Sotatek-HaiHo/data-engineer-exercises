@@ -4,7 +4,7 @@ covid19:
 
     dev:
       type: postgres
-      threads: 2
+      threads: 1
       host: localhost
       port: 5432
       user: "{{ env_var('DBT_USER') }}"
@@ -14,7 +14,7 @@ covid19:
 
     prod:
       type: postgres
-      threads: 2
+      threads: 1
       host: localhost
       port: 5432
       user: "{{ env_var('DBT_USER') }}"
