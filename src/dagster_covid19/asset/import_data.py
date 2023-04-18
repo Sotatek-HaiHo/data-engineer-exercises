@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from tempfile import TemporaryDirectory
 
 import pandas as pd
 from dagster import asset, AssetIn, io_manager, IOManager, Output, RetryPolicy
@@ -21,12 +22,11 @@ class MyIOManager(IOManager):
             i += 1
 
     def load_input(self, context):
-        tmpdir = "/home/haiho/kaggle"
-        output_path = os.getenv("DAGSTER_ASSET_TMPDIR")
+        tmpdir = os.getenv("DAGSTER_ASSET_TMPDIR")
         i = 1
         df_list = list()
         for element in os.listdir(tmpdir):
-            input_path = output_path + "/" + str(i) + context.metadata.get("name")
+            input_path = tmpdir + "/" + str(i) + context.metadata.get("name")
             df = pd.read_parquet(input_path)
             df_list.append(df)
             i += 1
@@ -38,13 +38,12 @@ def download_and_extract_dataset():
     kg = KaggleApi()
     kg.authenticate()
     df_list = list()
-    # with TemporaryDirectory(dir=temporary_directory) as tmpdir:
-    #     kg.dataset_download_files(
-    #         dataset="smid80/coronavirus-covid19-tweets-early-april",
-    #         path=tmpdir,
-    #         unzip=True,
-    #     )
-    tmpdir = "/home/haiho/kaggle"
+    with TemporaryDirectory(dir=temporary_directory) as tmpdir:
+        kg.dataset_download_files(
+            dataset="smid80/coronavirus-covid19-tweets-early-april",
+            path=tmpdir,
+            unzip=True,
+        )
     for filename in os.listdir(tmpdir):
         print(filename.split(".")[0])
         if filename.endswith(".CSV"):
