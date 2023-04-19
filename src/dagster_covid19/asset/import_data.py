@@ -26,13 +26,12 @@ class MyIOManager(IOManager):
 
         def parquet_df_gen(filename):
             tmpdir = os.getenv("DAGSTER_ASSET_TMPDIR")
-            par_df = pd.DataFrame()
             i = 1
             for element in os.listdir(tmpdir):
                 input_path = tmpdir + "/" + str(i) + filename
                 par_df = pd.read_parquet(input_path)
                 i += 1
-            yield par_df
+                yield par_df
 
         parquet_generator = parquet_df_gen(filename)
         return parquet_generator
@@ -87,7 +86,7 @@ def upload_data(engine, df):
         name=table_name,
         schema=schema_name,
         con=engine,
-        if_exists="replace",
+        if_exists="append",
         index=False,
     )
 
