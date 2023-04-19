@@ -84,7 +84,11 @@ def upload_data(engine, df):
     table_name = "raw_tweets"
     schema_name = "public"
     df.to_sql(
-        name=table_name, schema=schema_name, con=engine, if_exists="append", index=False
+        name=table_name,
+        schema=schema_name,
+        con=engine,
+        if_exists="replace",
+        index=False,
     )
 
 
