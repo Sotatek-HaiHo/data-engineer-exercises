@@ -1,40 +1,12 @@
 import os
 from datetime import datetime
 from tempfile import TemporaryDirectory
+from typing import Any
 
 import pandas as pd
-from dagster import asset, AssetIn, io_manager, IOManager, Output, RetryPolicy
-from dotenv.main import load_dotenv
+from dagster import asset, AssetIn, Output, RetryPolicy
 from kaggle.api.kaggle_api_extended import KaggleApi
 from sqlalchemy import create_engine
-
-load_dotenv()
-
-
-class MyIOManager(IOManager):
-    def handle_output(self, context, obj):
-        load_dotenv()
-        output_path = os.getenv("DAGSTER_ASSET_TMPDIR")
-        i = 1
-        for element in obj:
-            parquet_file = output_path + "/" + str(i) + context.metadata.get("name")
-            element.to_parquet(parquet_file)
-            i += 1
-
-    def load_input(self, context):
-        filename = context.metadata.get("name")
-
-        def parquet_df_gen(filename):
-            tmpdir = os.getenv("DAGSTER_ASSET_TMPDIR")
-            i = 1
-            for element in os.listdir(tmpdir):
-                input_path = tmpdir + "/" + str(i) + filename
-                par_df = pd.read_parquet(input_path)
-                i += 1
-                yield par_df
-
-        parquet_generator = parquet_df_gen(filename)
-        return parquet_generator
 
 
 def download_and_extract_dataset():
@@ -63,23 +35,17 @@ def download_and_extract_dataset():
     return Output(df_generator, metadata={"name": "covid.parquet"})
 
 
-@io_manager
-def my_io_manager():
-    return MyIOManager()
-
-
 @asset(
     retry_policy=RetryPolicy(max_retries=3, delay=60),
-    io_manager_key="my_io_manager",
+    io_manager_key="df_io_manager",
     key_prefix=["raw_tweets"],
-    resource_defs={"my_io_manager": my_io_manager},
     metadata={"name": "covid.parquet"},
 )
 def parquet_files():
     return download_and_extract_dataset()
 
 
-def upload_data(engine, df):
+def upload_data(engine: create_engine, df: pd.DataFrame):
     table_name = "raw_tweets"
     schema_name = "public"
     df.to_sql(
@@ -94,16 +60,15 @@ def upload_data(engine, df):
 @asset(
     retry_policy=RetryPolicy(max_retries=3, delay=60),
     key_prefix=["raw_tweets"],
-    resource_defs={"my_io_manager": my_io_manager},
     ins={
         "parquet_files": AssetIn(
             key="parquet_files",
-            input_manager_key="my_io_manager",
+            input_manager_key="df_io_manager",
             metadata={"name": "covid.parquet"},
         )
     },
 )
-def raw_tweets(parquet_files):
+def raw_tweets(parquet_files: Any) -> None:
     postgres_connection_string = os.getenv("POSTGRE_CONNECTION_STRING")
     if postgres_connection_string is None:
         raise Exception("POSTGRE_CONNECTION_STRING is not set")
