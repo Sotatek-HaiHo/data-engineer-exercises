@@ -6,7 +6,7 @@ from typing import Any
 import pandas as pd
 from dagster import asset, AssetIn, Output, RetryPolicy
 from kaggle.api.kaggle_api_extended import KaggleApi
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, delete
 
 
 def download_and_extract_dataset():
@@ -45,9 +45,9 @@ def parquet_files():
     return download_and_extract_dataset()
 
 
-def upload_data(engine: create_engine, df: pd.DataFrame):
-    table_name = "raw_tweets"
-    schema_name = "public"
+def upload_data(
+    engine: create_engine, df: pd.DataFrame, table_name: str, schema_name: str
+):
     df.to_sql(
         name=table_name,
         schema=schema_name,
@@ -70,9 +70,16 @@ def upload_data(engine: create_engine, df: pd.DataFrame):
 )
 def raw_tweets(parquet_files: Any) -> None:
     postgres_connection_string = os.getenv("POSTGRE_CONNECTION_STRING")
+    table_name = "raw_tweets"
+    schema_name = "public"
     if postgres_connection_string is None:
         raise Exception("POSTGRE_CONNECTION_STRING is not set")
     else:
         engine = create_engine(postgres_connection_string)
+
+        with engine.connect() as conn:
+            query = f"DELETE FROM {schema_name}.{table_name};"
+            conn.execute(query)
+
         for df in parquet_files:
-            upload_data(engine, df)
+            upload_data(engine, df, table_name, schema_name)
