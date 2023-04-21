@@ -1,15 +1,17 @@
+import logging
 import os
 from datetime import datetime
 from tempfile import TemporaryDirectory
-from typing import Any
 
 import pandas as pd
 from dagster import asset, AssetIn, Output, RetryPolicy
 from kaggle.api.kaggle_api_extended import KaggleApi
-from sqlalchemy import create_engine, delete
+from sqlalchemy import create_engine, engine
+
+from src.dagster_covid19.asset.asset_resources import ddl
 
 
-def download_and_extract_dataset():
+def _download_and_extract_dataset():
     temporary_directory = os.getenv("DAGSTER_ASSET_TMPDIR")
     kg = KaggleApi()
     kg.authenticate()
@@ -22,7 +24,7 @@ def download_and_extract_dataset():
                 unzip=True,
             )
             for filename in os.listdir(tmpdir):
-                print(filename.split(".")[0])
+                logging.info(msg=filename.split(".")[0])
                 if filename.endswith(".CSV"):
                     date_str = filename.split(" ")[0]
                     date = datetime.strptime(date_str, "%Y-%m-%d").date()
@@ -41,13 +43,13 @@ def download_and_extract_dataset():
     key_prefix=["raw_tweets"],
     metadata={"name": "covid.parquet"},
 )
-def parquet_files():
-    return download_and_extract_dataset()
+def parquet_files() -> Output:
+    return _download_and_extract_dataset()
 
 
-def upload_data(
-    engine: create_engine, df: pd.DataFrame, table_name: str, schema_name: str
-):
+def _upload_data(
+    engine: engine, df: pd.DataFrame, table_name: str, schema_name: str
+) -> None:
     df.to_sql(
         name=table_name,
         schema=schema_name,
@@ -68,7 +70,7 @@ def upload_data(
         )
     },
 )
-def raw_tweets(parquet_files: Any) -> None:
+def raw_tweets(parquet_files: Output) -> None:
     postgres_connection_string = os.getenv("POSTGRE_CONNECTION_STRING")
     table_name = "raw_tweets"
     schema_name = "public"
@@ -77,9 +79,14 @@ def raw_tweets(parquet_files: Any) -> None:
     else:
         engine = create_engine(postgres_connection_string)
 
-        with engine.connect() as conn:
-            query = f"DELETE FROM {schema_name}.{table_name};"
-            conn.execute(query)
+        try:
+            with engine.connect() as conn:
+                conn.execute(ddl["raw_tweets"])
 
-        for df in parquet_files:
-            upload_data(engine, df, table_name, schema_name)
+                query = f"DELETE FROM {schema_name}.{table_name};"
+                conn.execute(query)
+
+            for df in parquet_files:
+                _upload_data(engine, df, table_name, schema_name)
+        finally:
+            engine.dispose()
