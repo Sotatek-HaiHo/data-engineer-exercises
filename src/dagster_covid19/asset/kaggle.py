@@ -17,18 +17,15 @@ from dagster import (
     OpExecutionContext,
     Output,
 )
-from kaggle.api.kaggle_api_extended import KaggleApi
 from sqlalchemy import create_engine
 
 from dagster_covid19.config.path import get_tmp_dir
-
-kg = KaggleApi()
-kg.authenticate()
 
 
 @asset(
     config_schema={"force_download": Field(Bool, default_value=False)},
     key_prefix=["kaggle"],
+    required_resource_keys={"kaggle_api"},
 )
 def covid19_tweets_zip(context: OpExecutionContext) -> PurePath:
     dataset_name = "smid80/coronavirus-covid19-tweets-early-april"
@@ -40,7 +37,7 @@ def covid19_tweets_zip(context: OpExecutionContext) -> PurePath:
     context.log.info(
         "Start downloading Kaggle dataset %s to %s", dataset_name, output_path
     )
-    kg.dataset_download_files(
+    context.resources.kaggle_api.dataset_download_files(
         dataset=dataset_name,
         path=kaggle_ds_base_path,
         force=force_download,
