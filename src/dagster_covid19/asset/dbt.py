@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import os
 
 from dagster import (
@@ -25,15 +27,10 @@ dbt_jobs = define_asset_job(name="all_dbt_assets", selection=dbt_assets)
 
 
 @asset_sensor(
-    name="sensor_trigger_dbt_assets",
-    asset_key=AssetKey(["raw_tweets", "raw_tweets"]),
+    asset_key=AssetKey(["kaggle", "covid19_tweets_table"]),
     jobs=[dbt_jobs],
-    minimum_interval_seconds=120,
 )
-def sensor_trigger_dbt_assets(
+def dbt_sources_sensor(
     context: SensorEvaluationContext, asset_event: EventLogEntry
 ) -> RunRequest:
-    yield RunRequest(
-        run_key=None,
-        run_config={},
-    )
+    yield RunRequest()

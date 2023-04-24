@@ -13,6 +13,7 @@ from dagster import (
     Bool,
     define_asset_job,
     Field,
+    Nothing,
     OpExecutionContext,
     Output,
 )
@@ -85,16 +86,14 @@ def covid19_tweets_dataframe(
 
 
 @asset(
-    name="raw_tweets",
-    key_prefix=["raw_tweets"],
+    key_prefix=["kaggle"],
     ins={
         "covid19_tweets_dataframe": AssetIn(
-            key_prefix=["kaggle"],
             metadata={"name": "covid.parquet"},
         )
     },
 )
-def covid19_tweets_table(covid19_tweets_dataframe: Iterator[pd.DataFrame]) -> None:
+def covid19_tweets_table(covid19_tweets_dataframe) -> Nothing:
     raw_tweets_ddl = """
         create table raw_tweets
         (

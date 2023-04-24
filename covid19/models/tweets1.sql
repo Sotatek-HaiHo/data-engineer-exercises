@@ -8,7 +8,7 @@
 
 WITH nt as (
 	SELECT tweet_date,user_id, count(status_id) as num_tweets
-	from {{ source('raw_tweets', 'raw_tweets') }}
+	from {{ source('kaggle', 'covid19_tweets_table') }}
 	group by tweet_date, user_id
 )
 
