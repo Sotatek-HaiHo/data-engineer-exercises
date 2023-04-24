@@ -1,6 +1,10 @@
 from dagster_dbt import dbt_cli_resource
-from src.dagster_covid19.asset.io_manager import DataFrameIOManager
 from src.dagster_covid19.asset.sensor import DBT_PROFILES, DBT_PROJECT_PATH
+
+from dagster_covid19.resources.dataframe_io_manager import (
+    DataFrameIOManager,
+    DataFrameIOManagerConfig,
+)
 
 resources = {
     "dbt": dbt_cli_resource.configured(
@@ -9,7 +13,7 @@ resources = {
             "profiles_dir": DBT_PROFILES,
         },
     ),
-    "df_io_manager": DataFrameIOManager(),
+    "df_io_manager": DataFrameIOManager(DataFrameIOManagerConfig.default()),
 }
 
 ddl = {
