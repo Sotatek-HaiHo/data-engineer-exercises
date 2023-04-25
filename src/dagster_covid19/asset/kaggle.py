@@ -12,6 +12,7 @@ from dagster import (
     Bool,
     define_asset_job,
     Field,
+    load_assets_from_current_module,
     Nothing,
     OpExecutionContext,
     Output,
@@ -24,7 +25,6 @@ from dagster_covid19.config.path import get_tmp_dir
 
 @asset(
     config_schema={"force_download": Field(Bool, default_value=False)},
-    key_prefix=["kaggle"],
     required_resource_keys={"kaggle_api"},
 )
 def covid19_tweets_zip(context: OpExecutionContext) -> Path:
@@ -47,7 +47,7 @@ def covid19_tweets_zip(context: OpExecutionContext) -> Path:
     return output_path
 
 
-@asset(key_prefix=["kaggle"])
+@asset
 def covid19_tweets_csv(context: OpExecutionContext, covid19_tweets_zip: Path) -> Path:
     context.log.info("Start unpacking Kaggle dataset %s", covid19_tweets_zip)
     output_path = covid19_tweets_zip.parent / covid19_tweets_zip.stem
@@ -59,7 +59,6 @@ def covid19_tweets_csv(context: OpExecutionContext, covid19_tweets_zip: Path) ->
 
 @asset(
     io_manager_key="df_io_manager",
-    key_prefix=["kaggle"],
 )
 def covid19_tweets_dataframe(
     context: OpExecutionContext, covid19_tweets_csv: Path
@@ -79,7 +78,7 @@ def covid19_tweets_dataframe(
     return Output(df_generator)
 
 
-@asset(key_prefix=["kaggle"])
+@asset
 def covid19_tweets_table(covid19_tweets_dataframe: DataFrameIterator) -> Nothing:
     raw_tweets_ddl = """
         create table raw_tweets
@@ -137,11 +136,8 @@ def covid19_tweets_table(covid19_tweets_dataframe: DataFrameIterator) -> Nothing
             engine.dispose()
 
 
-kaggle_assets = [
-    covid19_tweets_zip,
-    covid19_tweets_csv,
-    covid19_tweets_dataframe,
-    covid19_tweets_table,
-]
+kaggle_assets = load_assets_from_current_module(
+    group_name="kaggle", key_prefix=["kaggle"]
+)
 
 kaggle_job = define_asset_job(name="00_kaggle_covid19_tweet", selection=kaggle_assets)

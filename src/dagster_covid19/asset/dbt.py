@@ -13,7 +13,10 @@ from dagster_dbt import load_assets_from_dbt_project
 from dagster_covid19.resources.dbt import DBT_PROFILES, DBT_PROJECT_PATH
 
 dbt_assets = load_assets_from_dbt_project(
-    project_dir=DBT_PROJECT_PATH, profiles_dir=DBT_PROFILES, key_prefix=["covid19"]
+    project_dir=DBT_PROJECT_PATH,
+    profiles_dir=DBT_PROFILES,
+    key_prefix=["covid19"],
+    node_info_to_group_fn=lambda _: "dbt",
 )
 
 dbt_jobs = define_asset_job(name="all_dbt_assets", selection=dbt_assets)
