@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 import os
 import zipfile
-from collections.abc import Iterator
 from datetime import datetime
 from pathlib import PurePath
 
@@ -19,6 +18,7 @@ from dagster import (
 )
 from sqlalchemy import create_engine
 
+from dagster_covid19.config.datatypes import DataFrameIterator
 from dagster_covid19.config.path import get_tmp_dir
 
 
@@ -66,7 +66,7 @@ def covid19_tweets_csv(
 )
 def covid19_tweets_dataframe(
     context: OpExecutionContext, covid19_tweets_csv: PurePath
-) -> Output[Iterator[pd.DataFrame]]:
+) -> Output[DataFrameIterator]:
     def df_gen():
         for filename in os.listdir(covid19_tweets_csv):
             context.log.info("Processing file %s", filename)
@@ -90,7 +90,7 @@ def covid19_tweets_dataframe(
         )
     },
 )
-def covid19_tweets_table(covid19_tweets_dataframe) -> Nothing:
+def covid19_tweets_table(covid19_tweets_dataframe: DataFrameIterator) -> Nothing:
     raw_tweets_ddl = """
         create table raw_tweets
         (
