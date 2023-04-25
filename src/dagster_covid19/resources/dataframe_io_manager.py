@@ -28,7 +28,7 @@ class DataFrameIOManager(IOManager):
         self._base_path = config.base_path
 
     def _file_name(self, count: int, filename: str) -> Path:
-        return self._base_path / f"{filename}_{count}.pq"
+        return self._base_path / f"{filename}_{count}.parquet"
 
     def handle_output(
         self, context: OutputContext, obj: Iterable[pd.DataFrame]
