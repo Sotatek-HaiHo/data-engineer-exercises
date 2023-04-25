@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import os
-
 from dagster import (
     asset_sensor,
     AssetKey,
