@@ -3,7 +3,7 @@
 import os
 import zipfile
 from datetime import datetime
-from pathlib import PurePath
+from pathlib import Path
 
 import pandas as pd
 from dagster import (
@@ -27,9 +27,9 @@ from dagster_covid19.config.path import get_tmp_dir
     key_prefix=["kaggle"],
     required_resource_keys={"kaggle_api"},
 )
-def covid19_tweets_zip(context: OpExecutionContext) -> PurePath:
+def covid19_tweets_zip(context: OpExecutionContext) -> Path:
     dataset_name = "smid80/coronavirus-covid19-tweets-early-april"
-    kaggle_ds_base_path = PurePath(
+    kaggle_ds_base_path = Path(
         os.getenv("DAGSTER_KAGGLE_DS_PATH", get_tmp_dir() / "kaggle_ds_path")
     )
     force_download = context.op_config["force_download"]
@@ -48,9 +48,7 @@ def covid19_tweets_zip(context: OpExecutionContext) -> PurePath:
 
 
 @asset(key_prefix=["kaggle"])
-def covid19_tweets_csv(
-    context: OpExecutionContext, covid19_tweets_zip: PurePath
-) -> PurePath:
+def covid19_tweets_csv(context: OpExecutionContext, covid19_tweets_zip: Path) -> Path:
     context.log.info("Start unpacking Kaggle dataset %s", covid19_tweets_zip)
     output_path = covid19_tweets_zip.parent / covid19_tweets_zip.stem
     with zipfile.ZipFile(covid19_tweets_zip) as z:
@@ -65,7 +63,7 @@ def covid19_tweets_csv(
     metadata={"name": "covid.parquet"},
 )
 def covid19_tweets_dataframe(
-    context: OpExecutionContext, covid19_tweets_csv: PurePath
+    context: OpExecutionContext, covid19_tweets_csv: Path
 ) -> Output[DataFrameIterator]:
     def df_gen():
         for filename in os.listdir(covid19_tweets_csv):
