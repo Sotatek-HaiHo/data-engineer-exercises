@@ -60,7 +60,6 @@ def covid19_tweets_csv(context: OpExecutionContext, covid19_tweets_zip: Path) ->
 @asset(
     io_manager_key="df_io_manager",
     key_prefix=["kaggle"],
-    metadata={"name": "covid.parquet"},
 )
 def covid19_tweets_dataframe(
     context: OpExecutionContext, covid19_tweets_csv: Path
@@ -80,14 +79,7 @@ def covid19_tweets_dataframe(
     return Output(df_generator)
 
 
-@asset(
-    key_prefix=["kaggle"],
-    ins={
-        "covid19_tweets_dataframe": AssetIn(
-            metadata={"name": "covid.parquet"},
-        )
-    },
-)
+@asset(key_prefix=["kaggle"])
 def covid19_tweets_table(covid19_tweets_dataframe: DataFrameIterator) -> Nothing:
     raw_tweets_ddl = """
         create table raw_tweets
