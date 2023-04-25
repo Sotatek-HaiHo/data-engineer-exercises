@@ -8,7 +8,6 @@ from pathlib import Path
 import pandas as pd
 from dagster import (
     asset,
-    AssetIn,
     Bool,
     define_asset_job,
     Field,
