@@ -50,3 +50,9 @@ python_files = "test_*.py"
 
 [tool.dagster]
 module_name = "dagster_covid19.asset"
+
+[tool.ufmt]
+excludes = [
+    "covid19",
+    "dagster-home"
+]
