@@ -14,6 +14,7 @@ dependencies = [
     "kaggle~=1.5",
     "dbt-postgres>=1.4.5",
     "pyarrow>=11.0.0",
+    "pydantic>=1.10.7",
 ]
 requires-python = ">=3.10,<3.12"
 readme = "README.md"
@@ -43,9 +44,15 @@ testpaths = [
     "tests"
 ]
 python_functions = "should__*"
-python_files = "*_test.py"
+python_files = "test_*.py"
 
 [tool.pdm]
 
 [tool.dagster]
 module_name = "dagster_covid19.asset"
+
+[tool.ufmt]
+excludes = [
+    "covid19",
+    "dagster-home"
+]

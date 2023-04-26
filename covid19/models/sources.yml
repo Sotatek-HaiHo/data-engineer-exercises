@@ -1,8 +1,9 @@
 version: 2
 
 sources:
-  - name: raw_tweets
+  - name: kaggle
     database: postgres
     schema: public
     tables:
-      - name: raw_tweets
+      - name: covid19_tweets_table
+        identifier: raw_tweets

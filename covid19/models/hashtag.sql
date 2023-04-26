@@ -12,7 +12,7 @@
 }}
 
 with hst as (SELECT distinct user_id, tweet_date, unnest(regexp_matches(lower(content), '#\w+', 'g')) AS hashtag
-             FROM {{ source('raw_tweets', 'raw_tweets') }}),
+             FROM {{ source('kaggle', 'covid19_tweets_table') }}),
      hst2 as (SELECT user_id, tweet_date, hashtag
               FROM hst)
 

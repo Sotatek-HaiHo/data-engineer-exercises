@@ -1,18 +1,15 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 from dagster import Definitions
-from src.dagster_covid19.asset.asset_resources import resources
 
-from src.dagster_covid19.asset.import_data import parquet_files, raw_tweets
-from src.dagster_covid19.asset.sensor import (
-    dbt_assets,
-    DBT_PROFILES,
-    DBT_PROJECT_PATH,
-    sensor_trigger_dbt_assets,
-)
+from dagster_covid19.asset.dbt import dbt_assets, dbt_sources_sensor
+from dagster_covid19.asset.kaggle import kaggle_assets, kaggle_job
 
-all_assets = []
-all_assets.extend(dbt_assets)
-all_assets.append(raw_tweets)
-all_assets.append(parquet_files)
+from dagster_covid19.resources import get_resources
+
 defs = Definitions(
-    assets=all_assets, resources=resources, sensors=[sensor_trigger_dbt_assets]
+    assets=[*kaggle_assets, *dbt_assets],
+    resources=get_resources(),
+    sensors=[dbt_sources_sensor],
+    jobs=[kaggle_job],
 )
