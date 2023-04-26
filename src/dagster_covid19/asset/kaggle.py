@@ -16,7 +16,6 @@ from dagster import (
     Nothing,
     OpExecutionContext,
 )
-from sqlalchemy import create_engine
 
 from dagster_covid19.config.datatypes import DataFrameIterator
 from dagster_covid19.config.path import get_tmp_dir
@@ -82,9 +81,11 @@ def covid19_tweets_dataframe(
     return df
 
 
-@asset
+@asset(
+    required_resource_keys={"postgresql"},
+)
 def covid19_tweets_table(
-    covid19_tweets_dataframe: dict[str, DataFrameIterator]
+    context: OpExecutionContext, covid19_tweets_dataframe: dict[str, DataFrameIterator]
 ) -> Nothing:
     raw_tweets_ddl = """
         create table raw_tweets
@@ -114,33 +115,24 @@ def covid19_tweets_table(
             tweet_date           date
         );
     """
-    postgres_connection_string = os.getenv("POSTGRE_CONNECTION_STRING")
     table_name = "raw_tweets"
     schema_name = "public"
-    if postgres_connection_string is None:
-        raise Exception("POSTGRE_CONNECTION_STRING is not set")
-    else:
-        engine = create_engine(postgres_connection_string)
+    with context.resources.postgresql.connect() as conn:
+        # Drop old data
+        query = f"DROP TABLE {schema_name}.{table_name}"
+        conn.execute(query)
+        # Re-create table structure
+        conn.execute(raw_tweets_ddl)
 
-        try:
-            with engine.connect() as conn:
-                # Drop old data
-                query = f"DROP TABLE {schema_name}.{table_name};"
-                conn.execute(query)
-                # Re-create table structure
-                conn.execute(raw_tweets_ddl)
-
-            for df_generator in covid19_tweets_dataframe.values():
-                for df in df_generator:
-                    df.to_sql(
-                        name=table_name,
-                        schema=schema_name,
-                        con=engine,
-                        if_exists="append",
-                        index=False,
-                    )
-        finally:
-            engine.dispose()
+        for df_generator in covid19_tweets_dataframe.values():
+            for df in df_generator:
+                df.to_sql(
+                    name=table_name,
+                    schema=schema_name,
+                    con=conn,
+                    if_exists="append",
+                    index=False,
+                )
 
 
 kaggle_assets = load_assets_from_current_module(
