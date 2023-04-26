@@ -5,9 +5,9 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pandas as pd
-
-from dagster import AssetKey, InputContext, IOManager, OutputContext
+from dagster import InputContext, OutputContext, UPathIOManager
 from pydantic import BaseModel
+from upath import UPath
 
 from dagster_covid19.config.path import get_tmp_dir
 
@@ -23,46 +23,42 @@ class DataFrameIOManagerConfig(BaseModel):
         return DataFrameIOManagerConfig(base_path=df_path)
 
 
-class DataFrameIOManager(IOManager):
+class DataFrameIOManager(UPathIOManager):
     def __init__(self, config: DataFrameIOManagerConfig):
-        self._base_path = config.base_path
-
-    def _asset_path(self, asset_key: AssetKey) -> Path:
-        return self._base_path / asset_key.to_python_identifier()
+        super().__init__(UPath(config.base_path))
 
     @staticmethod
-    def _file_name(count: int, asset_path: Path) -> Path:
+    def _file_name(count: int, asset_path: UPath) -> UPath:
         return asset_path / f"{count}.parquet"
 
-    def handle_output(
-        self, context: OutputContext, obj: Iterator[pd.DataFrame]
-    ) -> None:
+    def dump_to_path(
+        self, context: OutputContext, obj: Iterator[pd.DataFrame], path: UPath
+    ):
         """
         Write an obj to a parquet file and save it in the directory.
         :param context: context of the output asset
         :param obj: obj to write to parquet file
+        :param path: directory to write to
         """
-        asset_path = self._asset_path(context.asset_key)
-        context.log.info("Saving output of %s to %s", context.asset_key, asset_path)
-        # Ensure asset_path exists before writing
-        if not asset_path.exists():
-            asset_path.mkdir(parents=True)
+        context.log.info("Saving output of %s to %s", context.asset_key, path)
         for count, element in enumerate(obj):
-            parquet_file = self._file_name(count, asset_path)
+            parquet_file = self._file_name(count, path)
             element.to_parquet(parquet_file)
 
-    def load_input(self, context: InputContext) -> Iterator[pd.DataFrame]:
+    def load_from_path(
+        self, context: InputContext, path: UPath
+    ) -> Iterator[pd.DataFrame]:
         """
         Read parquet files and add the data they contain to the database table.
         :param context: context of the output asset
+        :param path: directory to read from
         :return: dataframe of the parquet files
         """
-        asset_path = self._asset_path(context.asset_key)
-        context.log.info("Loading input %s from %s", context.asset_key, asset_path)
+        context.log.info("Loading input %s from %s", context.asset_key, path)
 
         def parquet_df_gen():
-            for count, element in enumerate(os.listdir(asset_path)):
-                input_path = self._file_name(count, asset_path)
+            for count, element in enumerate(os.listdir(path)):
+                input_path = self._file_name(count, path)
                 par_df = pd.read_parquet(input_path)
                 yield par_df
 
