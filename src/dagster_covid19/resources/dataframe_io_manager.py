@@ -45,7 +45,10 @@ class DataFrameIOManager(UPathIOManager):
         return asset_path / "manifest.json"
 
     def dump_to_path(
-        self, context: OutputContext, obj: Iterator[pd.DataFrame], path: UPath
+        self,
+        context: OutputContext,
+        obj: Union[pd.DataFrame, Iterator[pd.DataFrame]],
+        path: UPath,
     ):
         """
         Write an obj to a parquet file and save it in the directory.
@@ -59,7 +62,11 @@ class DataFrameIOManager(UPathIOManager):
             run_id_path.mkdir(parents=True)
         context.log.info("Saving output of %s to %s", context.asset_key, run_id_path)
         new_files = []
-        for count, element in enumerate(obj):
+        if isinstance(obj, pd.DataFrame):
+            data_frames = [obj]
+        else:
+            data_frames = obj
+        for count, element in enumerate(data_frames):
             parquet_file = run_id_path / f"{count}.parquet"
             element.to_parquet(parquet_file)
             new_files.append(str(parquet_file))
