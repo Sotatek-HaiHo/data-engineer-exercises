@@ -6,10 +6,10 @@ from typing import Any
 from dagster import DagsterType, TypeCheckContext
 
 
-def data_frame_iterator_checker(_: TypeCheckContext, dataframe_iterator: Any) -> bool:
-    return isinstance(dataframe_iterator, Iterator)
+def iterator_checker(_: TypeCheckContext, obj: Any) -> bool:
+    return isinstance(obj, Iterator)
 
 
 DataFrameIterator = DagsterType(
-    name="DataFrameIterator", type_check_fn=data_frame_iterator_checker
+    name="DataFrameIterator", type_check_fn=iterator_checker
 )
