@@ -84,55 +84,78 @@ def covid19_tweets_dataframe(
 @asset(
     required_resource_keys={"postgresql"},
 )
-def covid19_tweets_table(
-    context: OpExecutionContext, covid19_tweets_dataframe: dict[str, DataFrameIterator]
-) -> Nothing:
-    raw_tweets_ddl = """
-        create table raw_tweets
-        (
-            status_id            bigint,
-            user_id              bigint,
-            created_at           timestamp,
-            screen_name          text,
-            content              text,
-            source               text,
-            reply_to_status_id   bigint,
-            reply_to_user_id     bigint,
-            reply_to_screen_name text,
-            is_quote             boolean,
-            is_retweet           boolean,
-            favourites_count     integer,
-            retweet_count        integer,
-            country_code         text,
-            place_full_name      text,
-            place_type           text,
-            followers_count      integer,
-            friends_count        integer,
-            account_lang         integer,
-            account_created_at   timestamp,
-            verified             boolean,
-            lang                 text,
-            tweet_date           date
-        );
-    """
+def covid19_tweets_table_ddl(context: OpExecutionContext) -> tuple[str, str]:
     table_name = "raw_tweets"
     schema_name = "public"
+    raw_tweets_ddl = f"""
+            create table if not exists {schema_name}.{table_name}
+            (
+                status_id            bigint,
+                user_id              bigint,
+                created_at           timestamp,
+                screen_name          text,
+                content              text,
+                source               text,
+                reply_to_status_id   bigint,
+                reply_to_user_id     bigint,
+                reply_to_screen_name text,
+                is_quote             boolean,
+                is_retweet           boolean,
+                favourites_count     integer,
+                retweet_count        integer,
+                country_code         text,
+                place_full_name      text,
+                place_type           text,
+                followers_count      integer,
+                friends_count        integer,
+                account_lang         integer,
+                account_created_at   timestamp,
+                verified             boolean,
+                lang                 text,
+                tweet_date           date
+            )
+            PARTITION BY LIST(tweet_date);
+        """
+    with context.resources.postgresql.connect() as conn:
+        # Drop old table data for migration
+        query = f"DROP TABLE IF EXISTS {schema_name}.{table_name}"
+        conn.execute(query)
+        # Create table
+        conn.execute(raw_tweets_ddl)
+        return schema_name, table_name
+
+
+@asset(required_resource_keys={"postgresql"}, partitions_def=csv_partition)
+def covid19_tweets_table(
+    context: OpExecutionContext,
+    covid19_tweets_table_ddl: tuple[str, str],
+    covid19_tweets_dataframe: DataFrameIterator,
+) -> Nothing:
+    schema_name = covid19_tweets_table_ddl[0]
+    table_name_prefix = covid19_tweets_table_ddl[1]
+    partition_name_safe = context.partition_key.replace("-", "_")
+    partition_table_name = f"{table_name_prefix}_{partition_name_safe}"
+
+    partition_create_ddl = f"""
+    CREATE TABLE {partition_table_name}
+    PARTITION OF {table_name_prefix}
+    FOR VALUES IN ('{context.partition_key}');
+    """
     with context.resources.postgresql.connect() as conn:
         # Drop old data
-        query = f"DROP TABLE {schema_name}.{table_name}"
+        query = f"DROP TABLE IF EXISTS {schema_name}.{partition_table_name}"
         conn.execute(query)
         # Re-create table structure
-        conn.execute(raw_tweets_ddl)
+        conn.execute(partition_create_ddl)
 
-        for df_generator in covid19_tweets_dataframe.values():
-            for df in df_generator:
-                df.to_sql(
-                    name=table_name,
-                    schema=schema_name,
-                    con=conn,
-                    if_exists="append",
-                    index=False,
-                )
+        for df in covid19_tweets_dataframe:
+            df.to_sql(
+                name=partition_table_name,
+                schema=schema_name,
+                con=conn,
+                if_exists="append",
+                index=False,
+            )
 
 
 kaggle_assets = load_assets_from_current_module(
