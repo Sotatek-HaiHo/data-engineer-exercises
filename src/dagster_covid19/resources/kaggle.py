@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+from dagster import resource
 from kaggle.api.kaggle_api_extended import KaggleApi
 
 
-def get_kaggle_api() -> KaggleApi:
+@resource
+def kaggle_api() -> KaggleApi:
     """
     Return an authenticated Kaggle API client
     :return:

@@ -8,22 +8,15 @@ from pathlib import Path
 from typing import Optional, Union
 
 import pandas as pd
-from dagster import InputContext, OutputContext, UPathIOManager
+from dagster import (
+    InitResourceContext,
+    InputContext,
+    io_manager,
+    OutputContext,
+    UPathIOManager,
+)
 from pydantic import BaseModel, parse_obj_as, ValidationError
 from upath import UPath
-
-from dagster_covid19.config.path import get_tmp_dir
-
-
-class DataFrameIOManagerConfig(BaseModel):
-    base_path: Path
-
-    @staticmethod
-    def default() -> "DataFrameIOManagerConfig":
-        df_path = Path(
-            os.getenv("DAGSTER_DATAFRAME_IO_PATH", get_tmp_dir() / "df_io_manager")
-        )
-        return DataFrameIOManagerConfig(base_path=df_path)
 
 
 class DataFrameIOManagerManifestV1(BaseModel):
@@ -37,8 +30,8 @@ class DataFrameIOManagerVersionManifest(BaseModel):
 
 
 class DataFrameIOManager(UPathIOManager):
-    def __init__(self, config: DataFrameIOManagerConfig):
-        super().__init__(UPath(config.base_path))
+    def __init__(self, base_path: Path):
+        super().__init__(UPath(base_path))
 
     @staticmethod
     def _manifest_name(asset_path: UPath) -> UPath:
@@ -60,12 +53,19 @@ class DataFrameIOManager(UPathIOManager):
         run_id_path = path / context.run_id
         if not run_id_path.exists():
             run_id_path.mkdir(parents=True)
-        context.log.info(
-            "Saving output. [asset=%s, partition=%s, path=%s]",
-            context.asset_key,
-            context.asset_partition_key,
-            run_id_path,
-        )
+        if context.has_asset_partitions:
+            context.log.info(
+                "Saving output. [asset=%s, partition=%s, path=%s]",
+                context.asset_key,
+                context.asset_partition_key,
+                run_id_path,
+            )
+        else:
+            context.log.info(
+                "Saving output. [asset=%s, path=%s]",
+                context.asset_key,
+                run_id_path,
+            )
         new_files = []
         if isinstance(obj, pd.DataFrame):
             data_frames = [obj]
@@ -146,3 +146,14 @@ class DataFrameIOManager(UPathIOManager):
 
         parquet_generator = parquet_df_gen()
         return parquet_generator
+
+
+@io_manager(required_resource_keys={"tmp_dir"})
+def dataframe_io_manager(init_context: InitResourceContext):
+    df_path = Path(
+        os.getenv(
+            "DAGSTER_DATAFRAME_IO_PATH",
+            init_context.resources.tmp_dir / "df_io_manager",
+        )
+    )
+    return DataFrameIOManager(base_path=df_path)

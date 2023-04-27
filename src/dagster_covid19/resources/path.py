@@ -6,8 +6,11 @@ import shutil
 from pathlib import Path
 from tempfile import mkdtemp
 
+from dagster import resource
 
-def get_tmp_dir() -> Path:
+
+@resource
+def tmp_dir() -> Path:
     # User-defined persistent temporary directory
     user_defined_tmp_dir = os.getenv("DAGSTER_ASSET_TMPDIR")
     if user_defined_tmp_dir is not None:
