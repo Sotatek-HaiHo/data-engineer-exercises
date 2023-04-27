@@ -118,9 +118,6 @@ def covid19_tweets_table_ddl(context: OpExecutionContext) -> tuple[str, str]:
             PARTITION BY LIST(tweet_date);
         """
     with context.resources.postgresql.connect() as conn:
-        # Drop old table data for migration
-        query = f"DROP TABLE IF EXISTS {schema_name}.{table_name}"
-        conn.execute(query)
         # Create table
         conn.execute(raw_tweets_ddl)
         return schema_name, table_name
