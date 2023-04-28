@@ -45,7 +45,10 @@ class DataFrameIOManager(UPathIOManager):
         return asset_path / "manifest.json"
 
     def dump_to_path(
-        self, context: OutputContext, obj: Iterator[pd.DataFrame], path: UPath
+        self,
+        context: OutputContext,
+        obj: Union[pd.DataFrame, Iterator[pd.DataFrame]],
+        path: UPath,
     ):
         """
         Write an obj to a parquet file and save it in the directory.
@@ -57,9 +60,18 @@ class DataFrameIOManager(UPathIOManager):
         run_id_path = path / context.run_id
         if not run_id_path.exists():
             run_id_path.mkdir(parents=True)
-        context.log.info("Saving output of %s to %s", context.asset_key, run_id_path)
+        context.log.info(
+            "Saving output. [asset=%s, partition=%s, path=%s]",
+            context.asset_key,
+            context.asset_partition_key,
+            run_id_path,
+        )
         new_files = []
-        for count, element in enumerate(obj):
+        if isinstance(obj, pd.DataFrame):
+            data_frames = [obj]
+        else:
+            data_frames = obj
+        for count, element in enumerate(data_frames):
             parquet_file = run_id_path / f"{count}.parquet"
             element.to_parquet(parquet_file)
             new_files.append(str(parquet_file))
@@ -88,7 +100,7 @@ class DataFrameIOManager(UPathIOManager):
 
         # Write new manifest
         manifest_name = self._manifest_name(path)
-        context.log.info("Updating manifest %s", manifest_name)
+        context.log.info("Updating manifest [path=%s]", manifest_name)
         manifest_data = DataFrameIOManagerVersionManifest(
             content=DataFrameIOManagerManifestV1(
                 run_id=context.run_id, files_list=new_files
@@ -116,14 +128,18 @@ class DataFrameIOManager(UPathIOManager):
     ) -> Iterator[pd.DataFrame]:
         """
         Read parquet files and add the data they contain to the database table.
-        :param context: context of the output asset
+        :param context: context of the input asset
         :param path: directory to read from
         :return: dataframe of the parquet files
         """
-        context.log.info("Loading input %s from %s", context.asset_key, path)
-        old_manifest = self._read_manifest(context, path)
 
         def parquet_df_gen():
+            context.log.info(
+                "Loading input. [asset=%s, path=%s]",
+                context.asset_key,
+                path,
+            )
+            old_manifest = self._read_manifest(context, path)
             for input_path in old_manifest.files_list:
                 par_df = pd.read_parquet(input_path)
                 yield par_df

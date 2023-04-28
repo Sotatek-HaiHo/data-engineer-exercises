@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from typing import Union
+
 from dagster import (
-    asset_sensor,
     AssetKey,
     define_asset_job,
-    EventLogEntry,
+    multi_asset_sensor,
+    MultiAssetSensorEvaluationContext,
     RunRequest,
-    SensorEvaluationContext,
+    SkipReason,
 )
 from dagster_dbt import load_assets_from_dbt_project
 
@@ -22,11 +24,18 @@ dbt_assets = load_assets_from_dbt_project(
 dbt_jobs = define_asset_job(name="all_dbt_assets", selection=dbt_assets)
 
 
-@asset_sensor(
-    asset_key=AssetKey(["kaggle", "covid19_tweets_table"]),
-    jobs=[dbt_jobs],
+@multi_asset_sensor(
+    monitored_assets=[AssetKey(["kaggle", "covid19_tweets_table"])], jobs=[dbt_jobs]
 )
-def dbt_sources_sensor(
-    context: SensorEvaluationContext, asset_event: EventLogEntry
-) -> RunRequest:
-    yield RunRequest()
+def dbt_partitioned_sources_sensor(
+    context: MultiAssetSensorEvaluationContext,
+) -> Union[RunRequest, SkipReason]:
+    asset_key = AssetKey(["kaggle", "covid19_tweets_table"])
+    if context.all_partitions_materialized(asset_key):
+        context.advance_all_cursors()
+        return RunRequest(run_key=context.cursor)
+    else:
+        return SkipReason("Not enough materialized partitions")
+
+
+dbt_sensors = [dbt_partitioned_sources_sensor]
