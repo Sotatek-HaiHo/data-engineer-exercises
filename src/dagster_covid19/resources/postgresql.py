@@ -11,7 +11,7 @@ from sqlalchemy.pool import NullPool
 
 @resource
 @contextmanager
-def get_postgresql_engine() -> Engine:
+def postgresql_engine() -> Engine:
     postgres_connection_string = os.getenv("POSTGRE_CONNECTION_STRING")
     if postgres_connection_string is None:
         raise Exception("POSTGRE_CONNECTION_STRING is not set")

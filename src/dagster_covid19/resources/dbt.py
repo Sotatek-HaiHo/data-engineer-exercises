@@ -13,7 +13,7 @@ DBT_PROJECT_PATH = os.getenv("DBT_PROJECT_PATH", DEFAULT_PROJECT_PATH)
 DBT_PROFILES = os.getenv("DBT_PROFILES", DEFAULT_PROFILES_PATH)
 
 
-def get_dbt_cli() -> ResourceDefinition:
+def dbt_cli() -> ResourceDefinition:
     return dbt_cli_resource.configured(
         {
             "project_dir": DBT_PROJECT_PATH,

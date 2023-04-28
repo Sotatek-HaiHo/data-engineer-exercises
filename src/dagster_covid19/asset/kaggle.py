@@ -17,7 +17,6 @@ from dagster import (
 )
 
 from dagster_covid19.config.datatypes import DataFrameIterator
-from dagster_covid19.config.path import get_tmp_dir
 from dagster_covid19.config.sql_table import SqlTable
 
 csv_partition = DynamicPartitionsDefinition(name="covid19_tweets_csv_output")
@@ -25,12 +24,14 @@ csv_partition = DynamicPartitionsDefinition(name="covid19_tweets_csv_output")
 
 @asset(
     config_schema={"force_download": Field(Bool, default_value=False)},
-    required_resource_keys={"kaggle_api"},
+    required_resource_keys={"kaggle_api", "tmp_dir"},
 )
 def covid19_tweets_zip(context: OpExecutionContext) -> Path:
     dataset_name = "smid80/coronavirus-covid19-tweets-early-april"
     kaggle_ds_base_path = Path(
-        os.getenv("DAGSTER_KAGGLE_DS_PATH", get_tmp_dir() / "kaggle_ds_path")
+        os.getenv(
+            "DAGSTER_KAGGLE_DS_PATH", context.resources.tmp_dir / "kaggle_ds_path"
+        )
     )
     force_download = context.op_config["force_download"]
     output_path = kaggle_ds_base_path / "coronavirus-covid19-tweets-early-april.zip"
@@ -117,9 +118,6 @@ def covid19_tweets_table_ddl(context: OpExecutionContext) -> tuple[str, str]:
             PARTITION BY LIST(tweet_date);
         """
     with context.resources.postgresql.connect() as conn:
-        # Drop old table data for migration
-        query = f"DROP TABLE IF EXISTS {schema_name}.{table_name}"
-        conn.execute(query)
         # Create table
         conn.execute(raw_tweets_ddl)
         return schema_name, table_name
