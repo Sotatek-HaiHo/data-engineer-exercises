@@ -13,12 +13,12 @@ from dagster import (
     DynamicPartitionsDefinition,
     Field,
     load_assets_from_current_module,
-    Nothing,
     OpExecutionContext,
 )
 
 from dagster_covid19.config.datatypes import DataFrameIterator
 from dagster_covid19.config.path import get_tmp_dir
+from dagster_covid19.config.sql_table import SqlTable
 
 csv_partition = DynamicPartitionsDefinition(name="covid19_tweets_csv_output")
 
@@ -125,37 +125,29 @@ def covid19_tweets_table_ddl(context: OpExecutionContext) -> tuple[str, str]:
         return schema_name, table_name
 
 
-@asset(required_resource_keys={"postgresql"}, partitions_def=csv_partition)
+@asset(io_manager_key="sql_table_io_manager", partitions_def=csv_partition)
 def covid19_tweets_table(
     context: OpExecutionContext,
     covid19_tweets_table_ddl: tuple[str, str],
     covid19_tweets_dataframe: DataFrameIterator,
-) -> Nothing:
+) -> SqlTable:
     schema_name = covid19_tweets_table_ddl[0]
     table_name_prefix = covid19_tweets_table_ddl[1]
     partition_name_safe = context.partition_key.replace("-", "_")
     partition_table_name = f"{table_name_prefix}_{partition_name_safe}"
-
     partition_create_ddl = f"""
     CREATE TABLE {partition_table_name}
     PARTITION OF {table_name_prefix}
-    FOR VALUES IN ('{context.partition_key}');
+    FOR VALUES IN ('{context.partition_key}')
     """
-    with context.resources.postgresql.connect() as conn:
-        # Drop old data
-        query = f"DROP TABLE IF EXISTS {schema_name}.{partition_table_name}"
-        conn.execute(query)
-        # Re-create table structure
-        conn.execute(partition_create_ddl)
-
-        for df in covid19_tweets_dataframe:
-            df.to_sql(
-                name=partition_table_name,
-                schema=schema_name,
-                con=conn,
-                if_exists="append",
-                index=False,
-            )
+    partition_drop_ddl = f"DROP TABLE IF EXISTS {schema_name}.{partition_table_name}"
+    return SqlTable(
+        schema_name=schema_name,
+        table_name=partition_table_name,
+        create_ddl=partition_create_ddl,
+        drop_ddl=partition_drop_ddl,
+        content=covid19_tweets_dataframe,
+    )
 
 
 kaggle_assets = load_assets_from_current_module(
