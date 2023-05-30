@@ -1,0 +1,28 @@
+version: "2.2"
+services:
+  jobmanager:
+    image: flink:1.14.4-scala_2.11
+    command: jobmanager
+    network_mode: host
+    restart: always
+  taskmanager:
+    image: flink:1.14.4-scala_2.11
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    scale: 1
+    network_mode: host
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: localhost
+        taskmanager.numberOfTaskSlots: 2
+        parallelism.default: 2
+        taskmanager.memory.process.size: 2048m
+        taskmanager.memory.flink.size: 1536m
+    restart: always
+  job_server:
+    image: apache/beam_flink1.14_job_server:2.47.0
+    network_mode: host
+    command: --flink-master=localhost:8081
+    restart: always
