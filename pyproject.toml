@@ -18,7 +18,7 @@ dependencies = [
     "apache-beam>=2.47.0",
     "apache-flink>=1.9.3",
 ]
-requires-python = ">=3.10,<3.12"
+requires-python = ">=3.10,<3.11"
 readme = "README.md"
 license = {text = "SOTATEK"}
 [project.optional-dependencies]
