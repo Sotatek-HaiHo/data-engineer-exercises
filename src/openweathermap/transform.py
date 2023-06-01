@@ -152,12 +152,3 @@ class GlobalTempDiffFn(beam.CombineFn):
         return "avg_global_temperature: " + str(
             accumulator[1]
         ), "temperature_change: " + str(accumulator[1] - accumulator[0])
-
-
-class CustomSink(beam.DoFn):
-    """
-    Format the output of a pipeline
-    """
-
-    def process(self, data, timestamp=beam.DoFn.TimestampParam):
-        print(data, ",", timestamp)

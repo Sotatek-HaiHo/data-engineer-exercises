@@ -5,13 +5,9 @@ import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.transforms.trigger import AccumulationMode, AfterWatermark
 from dotenv import load_dotenv
-from src.openweathermap.ingest import _UnboundedSource
-from src.openweathermap.transform import (
-    AverageFn,
-    CustomSink,
-    GlobalTempDiffFn,
-    GlobalTempFn,
-)
+from src.openweathermap.ingest import OpenWeatherMapSource
+from src.openweathermap.sink import WeatherSink
+from src.openweathermap.transform import AverageFn, GlobalTempDiffFn, GlobalTempFn
 
 load_dotenv()  # take environment variables from .env.
 
@@ -34,7 +30,7 @@ if __name__ == "__main__":
     pipeline_option = get_flink_pipeline()
     fixedwindow_length = 5
     with beam.Pipeline(options=pipeline_option) as pipeline_1:
-        weather_data = pipeline_1 | "Custom Source Name" >> _UnboundedSource()
+        weather_data = pipeline_1 | "OpenWeatherMap Source" >> OpenWeatherMapSource()
         average_values = (
             weather_data
             | "WindowByMinute"
@@ -44,7 +40,7 @@ if __name__ == "__main__":
             )
             | "CalculateMean" >> beam.CombineGlobally(AverageFn()).without_defaults()
         )
-        average_values | "Read timestamp" >> beam.ParDo(CustomSink())
+        average_values | "Read timestamp" >> beam.ParDo(WeatherSink())
         global_average = (
             average_values
             | "Calculate Global Average"
@@ -61,4 +57,4 @@ if __name__ == "__main__":
             | "Calculate Global Temperature"
             >> beam.CombineGlobally(GlobalTempDiffFn()).without_defaults()
         )
-        global_diff | beam.ParDo(CustomSink())
+        global_diff | beam.ParDo(WeatherSink())
