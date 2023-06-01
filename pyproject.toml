@@ -16,7 +16,6 @@ dependencies = [
     "pyarrow>=11.0.0",
     "pydantic>=1.10.7",
     "apache-beam>=2.47.0",
-    "apache-flink>=1.9.3",
 ]
 requires-python = ">=3.10,<3.11"
 readme = "README.md"
@@ -47,8 +46,6 @@ testpaths = [
 ]
 python_functions = "should__*"
 python_files = "test_*.py"
-
-[tool.pdm]
 
 [tool.dagster]
 module_name = "dagster_covid19.asset"
