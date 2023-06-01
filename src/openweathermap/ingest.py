@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
+import os
 import time
 from datetime import datetime
 
@@ -13,7 +14,7 @@ from apache_beam.io.watermark_estimators import WalltimeWatermarkEstimator
 from apache_beam.transforms.ptransform import OutputT
 
 
-class UnboundedOffsetRestrictionTracker(OffsetRestrictionTracker):
+class _RestrictionProviderTracker(OffsetRestrictionTracker):
     """An unbounded restriction tracker"""
 
     def try_claim(self, position) -> bool:
@@ -28,9 +29,9 @@ class UnboundedOffsetRestrictionTracker(OffsetRestrictionTracker):
         return False
 
 
-class MyRestrictionProvider(RestrictionProvider):
+class _RestrictionProvider(RestrictionProvider):
     def create_tracker(self, restriction):
-        return UnboundedOffsetRestrictionTracker(restriction)
+        return _RestrictionProviderTracker(restriction)
 
     def initial_restriction(self, element):
         return OffsetRange(0, 1)
@@ -39,18 +40,26 @@ class MyRestrictionProvider(RestrictionProvider):
         return restriction.size()
 
 
-class MyCustomUnboundedSourceDoFn(beam.DoFn):
+class _GetDataFromSource(beam.DoFn):
     """A splittable DoFn that generates an unbounded amount of data"""
 
     def __init__(self):
         super().__init__()
         self._initial_data = None
         self._sleep_time = None
+        self._api_key = None
+        self._cities = None
 
     def setup(self):
         super().setup()
         self._initial_data = 0
         self._sleep_time = 1
+        self._api_key = os.getenv("API_KEY")
+        self._cities = [
+            {"name": "Moscow", "lat": 55.7504461, "lon": 37.6174943},
+            {"name": "Hà Nội", "lat": 21.0245, "lon": 105.8412},
+            {"name": "New York", "lat": 40.7127281, "lon": -74.0060152},
+        ]
 
     def start_bundle(self):
         super().start_bundle()
@@ -64,56 +73,56 @@ class MyCustomUnboundedSourceDoFn(beam.DoFn):
     def process(
         self,
         element,
-        restriction_tracker=beam.DoFn.RestrictionParam(MyRestrictionProvider()),
+        restriction_tracker=beam.DoFn.RestrictionParam(_RestrictionProvider()),
         watermark_estimator=beam.DoFn.WatermarkEstimatorParam(
             WalltimeWatermarkEstimator.default_provider()
         ),
     ):
-        cities = [
-            {"name": "Moscow", "lat": 55.7504461, "lon": 37.6174943},
-            {"name": "Hà Nội", "lat": 21.0245, "lon": 105.8412},
-            {"name": "New York", "lat": 40.7127281, "lon": -74.0060152},
-        ]
-        api_key = "11043aa0a7b7d4475fbbb7af6543b390"
-
         start = restriction_tracker.current_restriction().start
         json_list = []
-        for city in cities:
-            weather = self.fetch_data(api_key=api_key, lat=city["lat"], lon=city["lon"])
+        try:
+            for city in self._cities:
+                weather = self.fetch_data(
+                    api_key=self._api_key, lat=city["lat"], lon=city["lon"]
+                )
+                message = {}
+                message["name"] = weather["name"]
+                message["timestamp"] = datetime.utcfromtimestamp(
+                    time.time()
+                ).isoformat()
+                message["sunrise"] = datetime.utcfromtimestamp(
+                    weather["sys"]["sunrise"]
+                ).isoformat()
+                message["sunset"] = datetime.utcfromtimestamp(
+                    weather["sys"]["sunset"]
+                ).isoformat()
+                message["id"] = weather["weather"][0]["id"]
+                message["main"] = weather["weather"][0]["main"]
+                message["icon"] = weather["weather"][0]["icon"]
+                message["temp"] = weather["main"]["temp"]
+                message["feels_like"] = weather["main"]["feels_like"]
+                message["humidity"] = weather["main"]["humidity"]
+                message["visibility"] = weather["visibility"]
+                message["w_speed"] = weather["wind"]["speed"]
 
-            message = {}
-            message["name"] = weather["name"]
-            message["timestamp"] = datetime.utcfromtimestamp(time.time()).isoformat()
-            message["sunrise"] = datetime.utcfromtimestamp(
-                weather["sys"]["sunrise"]
-            ).isoformat()
-            message["sunset"] = datetime.utcfromtimestamp(
-                weather["sys"]["sunset"]
-            ).isoformat()
-            message["id"] = weather["weather"][0]["id"]
-            message["main"] = weather["weather"][0]["main"]
-            message["icon"] = weather["weather"][0]["icon"]
-            message["temp"] = weather["main"]["temp"]
-            message["feels_like"] = weather["main"]["feels_like"]
-            message["humidity"] = weather["main"]["humidity"]
-            message["visibility"] = weather["visibility"]
-            message["w_speed"] = weather["wind"]["speed"]
-
-            data = json.dumps(message).encode("utf-8")
-            data_dict = json.loads(data)
-            json_list.append(data_dict)
-        if restriction_tracker.try_claim(start):
-            for item in json_list:
-                timestamp = time.time()
-                yield beam.window.TimestampedValue(item, timestamp)
-        # the documents said that we can use
-        # defer_time = timestamp.Duration(seconds=self._sleep_time)
-        # restriction_tracker.defer_remainder(defer_time)
-        # but it doesn't seem to work,
-        # so we just sleep inside the function before deferring
-        time.sleep(self._sleep_time)
-        restriction_tracker.defer_remainder()
-        return
+                data = json.dumps(message).encode("utf-8")
+                data_dict = json.loads(data)
+                json_list.append(data_dict)
+            if restriction_tracker.try_claim(start):
+                for item in json_list:
+                    timestamp = time.time()
+                    yield beam.window.TimestampedValue(item, timestamp)
+            # the documents said that we can use
+            # defer_time = timestamp.Duration(seconds=self._sleep_time)
+            # restriction_tracker.defer_remainder(defer_time)
+            # but it doesn't seem to work,
+            # so we just sleep inside the function before deferring
+            time.sleep(self._sleep_time)
+            restriction_tracker.defer_remainder()
+            return
+        finally:
+            print("Error while getting data from source")
+            return
 
     def fetch_data(self, api_key: str, lat: float, lon: float):
         """
@@ -129,9 +138,9 @@ class MyCustomUnboundedSourceDoFn(beam.DoFn):
         return ret_data
 
 
-class MyCustomUnboundedSource(beam.PTransform):
-    """A root PTransform that use MyCustomUnboundedSourceDoFn
+class _UnboundedSource(beam.PTransform):
+    """A root PTransform that use _GetDataFromSource
     to perform actual data generation"""
 
     def expand(self, pbegin) -> OutputT:
-        return pbegin | beam.Impulse() | beam.ParDo(MyCustomUnboundedSourceDoFn())
+        return pbegin | beam.Impulse() | beam.ParDo(_GetDataFromSource())

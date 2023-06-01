@@ -4,15 +4,16 @@
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.transforms.trigger import AccumulationMode, AfterWatermark
-
-from src.openweathermap.ingest import MyCustomUnboundedSource
+from dotenv import load_dotenv
+from src.openweathermap.ingest import _UnboundedSource
 from src.openweathermap.transform import (
     AverageFn,
     CustomSink,
     GlobalTempDiffFn,
     GlobalTempFn,
-    parse_input,
 )
+
+load_dotenv()  # take environment variables from .env.
 
 
 def get_flink_pipeline() -> PipelineOptions:
@@ -31,23 +32,21 @@ def get_flink_pipeline() -> PipelineOptions:
 
 if __name__ == "__main__":
     pipeline_option = get_flink_pipeline()
-
+    fixedwindow_length = 5
     with beam.Pipeline(options=pipeline_option) as pipeline_1:
-        weather_data = pipeline_1 | "Custom Source Name" >> MyCustomUnboundedSource()
+        weather_data = pipeline_1 | "Custom Source Name" >> _UnboundedSource()
         average_values = (
             weather_data
             | "WindowByMinute"
             >> beam.WindowInto(
-                beam.window.FixedWindows(5),
-                accumulation_mode=AccumulationMode.ACCUMULATING,
+                beam.window.FixedWindows(fixedwindow_length),
+                accumulation_mode=AccumulationMode.DISCARDING,
             )
-            | "Group element" >> beam.Map(lambda x: ("location: " + str(x["name"]), x))
-            | "CalculateMean" >> beam.CombinePerKey(AverageFn())
+            | "CalculateMean" >> beam.CombineGlobally(AverageFn()).without_defaults()
         )
         average_values | "Read timestamp" >> beam.ParDo(CustomSink())
         global_average = (
             average_values
-            | "Parse Input" >> beam.Map(parse_input)
             | "Calculate Global Average"
             >> beam.CombineGlobally(GlobalTempFn()).without_defaults()
         )
@@ -55,7 +54,7 @@ if __name__ == "__main__":
             global_average
             | "Window"
             >> beam.WindowInto(
-                beam.window.SlidingWindows(10, 5),
+                beam.window.SlidingWindows(2 * fixedwindow_length, fixedwindow_length),
                 trigger=AfterWatermark(),
                 accumulation_mode=AccumulationMode.ACCUMULATING,
             )

@@ -1,8 +1,41 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from collections import Counter
+from dataclasses import dataclass
 
 import apache_beam as beam
+
+
+@dataclass
+class _CityData:
+    """
+    Temperature data class for city
+    """
+
+    sum: float
+    count: int
+    temp: list[float]
+    des: list[str]
+    location: str
+
+    def _merge(self, other: "_CityData") -> "_CityData":
+        return _CityData(
+            self.sum + other.sum,
+            self.count + other.count,
+            self.temp + other.temp,
+            self.des + other.des,
+            self.location,
+        )
+
+
+def _dict_to_city_data(input_dict) -> _CityData:
+    return _CityData(
+        input_dict["temp"],
+        1,
+        [input_dict["temp"]],
+        [input_dict["main"]],
+        location=input_dict["name"],
+    )
 
 
 class AverageFn(beam.CombineFn):
@@ -10,21 +43,32 @@ class AverageFn(beam.CombineFn):
     Calculating average temperature for each city
     """
 
+    def __init__(self):
+        super().__init__()
+
     def create_accumulator(self):
-        sum = 0.0
-        count = 0
-        temp = []
-        des = []
-        accumulator = sum, count, temp, des
+        return dict()
+
+    def add_input(self, accumulator, input_dict):
+        new_data = _dict_to_city_data(input_dict)
+        location = input_dict["name"]
+        if location not in accumulator:
+            accumulator[location] = new_data
+        else:
+            accumulator[location] = accumulator[location]._merge(new_data)
         return accumulator
 
-    def add_input(self, accumulator, input):
-        sum, count, temp, des = accumulator
-        des.append(input["main"])
-        temp.append(input["temp"])
-        return sum + input["temp"], count + 1, temp, des
-
     def merge_accumulators(self, accumulators):
+        output = dict()
+        for accumulator in accumulators:
+            for location, city_data in accumulator.items():
+                if location not in output:
+                    output[location] = city_data
+                else:
+                    output[location]._merge(city_data)
+        return output
+
+    def extract_output(self, accumulator):
         def _find_most_frequent(lst):
             counter = Counter(lst)
             most_common = counter.most_common()
@@ -36,45 +80,16 @@ class AverageFn(beam.CombineFn):
             )
             return result
 
-        if len(accumulators) > 0:
-            sums, counts, temp, des = zip(*accumulators)
-            desc = [item for sublist in des for item in sublist]
-            temps = [item for sublist in temp for item in sublist]
-            temp_diff = temps[-1] - temps[0]
-            main_desc = _find_most_frequent(desc)
-            return sum(sums), sum(counts), temp_diff, main_desc
-        else:
-            return 0.0, 0, [], []
-
-    def extract_output(self, accumulator):
-        sum, count, temp, des = accumulator
-        if count == 0:
-            return float("NaN")
-        return (
-            "avg_temperature: " + str(sum / count),
-            "temperature_diff: " + str(temp),
-            "description: " + str(des),
-        )
-
-
-def parse_input(line: tuple) -> dict:
-    """
-    Parse the input line and return a dictionary
-    """
-
-    # Remove the outer brackets from the tuple
-    data_str = str(line).replace("(", "").replace(")", "").replace("'", "")
-
-    # Split the string into key-value pairs
-    pairs = [pair.strip() for pair in data_str.split(",")]
-
-    result_dict = {
-        pair.split(":")[0].strip(): float(pair.split(":")[1].strip())
-        if "temperature" in pair.lower() or "diff" in pair.lower()
-        else pair.split(":")[1].strip()
-        for pair in pairs
-    }
-    return result_dict
+        results = []
+        for value in accumulator.values():
+            res = {
+                "location": value.location,
+                "avg_temperature": value.sum / value.count,
+                "temperature_diff": value.temp[-1] - value.temp[0],
+                "description": _find_most_frequent(value.des),
+            }
+            results.append(res)
+        return results
 
 
 class GlobalTempFn(beam.CombineFn):
@@ -85,23 +100,24 @@ class GlobalTempFn(beam.CombineFn):
     def create_accumulator(self):
         sum = 0.0
         count = 0
-        avg_temp = []
-        accumulator = sum, count, avg_temp
+        accumulator = sum, count
         return accumulator
 
     def add_input(self, accumulator, input):
-        sum, count, avg_temp = accumulator
-        return sum + input["avg_temperature"], count + 1, avg_temp
+        sum, count = accumulator
+        for i in input:
+            sum += float(i["avg_temperature"])
+        return sum, count + len(input)
 
     def merge_accumulators(self, accumulators):
         if len(accumulators) > 0:
-            sums, counts, avg_temp = zip(*accumulators)
-            return sum(sums), sum(counts), avg_temp
+            sums, counts = zip(*accumulators)
+            return sum(sums), sum(counts)
         else:
-            return 0.0, 0, []
+            return 0.0, 0
 
     def extract_output(self, accumulator):
-        sum, count, avg_temp = accumulator
+        sum, count = accumulator
         if count == 0:
             return float("NaN")
 
@@ -144,5 +160,4 @@ class CustomSink(beam.DoFn):
     """
 
     def process(self, data, timestamp=beam.DoFn.TimestampParam):
-        timestamp = timestamp
         print(data, ",", timestamp)
