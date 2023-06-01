@@ -247,7 +247,6 @@ dependencies = [
     "docstring-parser",
     "grpcio-health-checking>=1.44.0",
     "grpcio<1.48.0,>=1.44.0; python_version < \"3.11\"",
-    "grpcio>=1.44.0; python_version >= \"3.11\"",
     "packaging>=20.9",
     "pendulum",
     "protobuf>=3.20.0",
@@ -762,7 +761,6 @@ requires_python = ">=3.8"
 summary = "Powerful data structures for data analysis, time series, and statistics"
 dependencies = [
     "numpy>=1.21.0; python_version >= \"3.10\"",
-    "numpy>=1.23.2; python_version >= \"3.11\"",
     "python-dateutil>=2.8.2",
     "pytz>=2020.1",
     "tzdata>=2022.1",
@@ -1342,7 +1340,7 @@ dependencies = [
 lock_version = "4.2"
 cross_platform = true
 groups = ["default", "dev", "test"]
-content_hash = "sha256:ce791537f405916b45df4dbf878b9006c632a0089605d39e5cd962931ce36c35"
+content_hash = "sha256:d8a523a7f91d6b831305b4f7435718622f33f09f0a69b6c8e71350083b6b2fca"
 
 [metadata.files]
 "agate 1.7.0" = [
