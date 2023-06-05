@@ -15,8 +15,9 @@ dependencies = [
     "dbt-postgres>=1.4.5",
     "pyarrow>=11.0.0",
     "pydantic>=1.10.7",
+    "apache-beam>=2.47.0",
 ]
-requires-python = ">=3.10,<3.12"
+requires-python = ">=3.10,<3.11"
 readme = "README.md"
 license = {text = "SOTATEK"}
 [project.optional-dependencies]
@@ -45,8 +46,6 @@ testpaths = [
 ]
 python_functions = "should__*"
 python_files = "test_*.py"
-
-[tool.pdm]
 
 [tool.dagster]
 module_name = "dagster_covid19.asset"
